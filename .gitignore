@@ -1,7 +1,11 @@
+# env files
 .env
 
 # cache
 __pycache__
+
+# logs
+*.log*
 
 # scraps
 scrap.ipynb
