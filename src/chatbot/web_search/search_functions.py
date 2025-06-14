@@ -26,7 +26,7 @@ SEARCH_LLM_SYS_PROMPT_PATH = config.SEARCH_LLM_SYS_PROMPT_PATH
 PARAM_PATH = config.PARAM_PATH
 
 with open(SEARCH_LLM_SYS_PROMPT_PATH, "r") as f:
-    search_sys_prompt = f.read()
+    search_llm_sys_prompt = f.read()
 
 with open(PARAM_PATH, "r") as f:
     parameters = yaml.safe_load(f)
@@ -62,7 +62,7 @@ def _summarize_page(
 
 def get_search_results(question: str, model, logger):
     url_set = set()
-    search_chat_history = [SystemMessage(search_sys_prompt.format(question))]
+    search_chat_history = [SystemMessage(search_llm_sys_prompt.format(question))]
 
     # context awareness
     generated_questions = generate_questions(
