@@ -1,0 +1,1 @@
+Your task is to generate similar questions according to given text or question. Generate {} questions similar to the original text.

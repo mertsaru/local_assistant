@@ -1,5 +1,9 @@
 search:
   number_of_pages: 3
-question_generator:
   number_of_gen_questions: 5
   best_n_pages: 3
+rag:
+  number_of_gen_questions: 5
+  best_n_pages: 3
+model:
+  name: smollm2:1.7b
