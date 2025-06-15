@@ -1,1 +1,0 @@
-Your task is to summarize the text that is given to you. I will give you a text that I got from a website, and you summarize the website. Especially, in the summary, highlight the parts which are related to the question: "{}"

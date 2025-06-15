@@ -12,6 +12,7 @@ from langchain_ollama import OllamaLLM
 from src import config
 from chatbot.question_generator.question_generator_functions import generate_questions
 from src.chatbot.question_generator.cross_encoder import page_selector
+from src.chatbot.summary_bot import summary_bot
 
 
 # objects
@@ -22,11 +23,8 @@ class Page:
 
 
 # Paths
-SEARCH_LLM_SYS_PROMPT_PATH = config.SEARCH_LLM_SYS_PROMPT_PATH
 PARAM_PATH = config.PARAM_PATH
 
-with open(SEARCH_LLM_SYS_PROMPT_PATH, "r") as f:
-    search_llm_sys_prompt = f.read()
 
 with open(PARAM_PATH, "r") as f:
     parameters = yaml.safe_load(f)
@@ -52,17 +50,8 @@ def _read_page(url: str, logger: Logger) -> Optional[BeautifulSoup]:
         return
 
 
-def _summarize_page(
-    page_text: str, model: OllamaLLM, chat_history: list[SystemMessage | HumanMessage]
-) -> str:
-    summary_hist = chat_history + [HumanMessage(page_text)]
-    summary = model.invoke(summary_hist)
-    return summary.content
-
-
 def get_search_results(question: str, model, logger):
     url_set = set()
-    search_chat_history = [SystemMessage(search_llm_sys_prompt.format(question))]
 
     # context awareness
     generated_questions = generate_questions(
@@ -85,7 +74,7 @@ def get_search_results(question: str, model, logger):
         if page_data is not None:
             page_title = page_data.title.name
             page_text = page_data.get_text()
-            page_summary = _summarize_page(page_text, model, search_chat_history)
+            page_summary = summary_bot.summarize_page(page_text, model, question)
             page_summary_list.append(Page(url, page_title, page_summary))
 
     # select best pages related to the question
