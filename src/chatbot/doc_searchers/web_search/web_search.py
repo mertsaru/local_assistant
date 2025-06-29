@@ -1,4 +1,4 @@
-from typing import Generator, Any, Optional
+from typing import Generator, Any, Optional, BaseModel
 from logging import Logger
 
 from httpx import HTTPError
@@ -16,21 +16,14 @@ from src.chatbot.summary_bot import summary_bot
 
 
 # objects
-class Page:
+class Page(BaseModel):
     url: str
     page_title: str
     page_text: str
 
 
-# Paths
-PARAM_PATH = config.PARAM_PATH
-
-
-with open(PARAM_PATH, "r") as f:
-    parameters = yaml.safe_load(f)
-
 # parameters
-number_of_pages = parameters["search"]["number_of_pages"]
+number_of_pages = config.PARAMETERS["search"]["number_of_pages"]
 
 
 def _find_pages(
@@ -57,7 +50,7 @@ def get_search_results(question: str, model, logger):
     generated_questions = generate_questions(
         model,
         question,
-        number_of_gen_questions=parameters["question_generator"][
+        number_of_gen_questions=config.PARAMETERS["question_generator"][
             "number_of_gen_questions"
         ],
     )
@@ -80,7 +73,7 @@ def get_search_results(question: str, model, logger):
     # select best pages related to the question
     best_page_summary_indices = page_selector.find_best_pages(
         [page.page_text for page in page_summary_list],
-        best_n_pages=parameters["question_generator"]["best_n_pages"],
+        best_n_pages=config.PARAMETERS["question_generator"]["best_n_pages"],
     )
     best_page_summaries = page_summary_list[best_page_summary_indices]
 

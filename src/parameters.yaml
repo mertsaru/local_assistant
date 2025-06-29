@@ -7,3 +7,5 @@ rag:
   best_n_pages: 3
 model:
   name: smollm2:1.7b
+chat_history:
+  history_length_threshold: 100000
