@@ -1,24 +1,55 @@
+from typing import Optional
+
+import numpy as np
+from torch import Tensor
+import torch.nn.functional as F
 from transformers import AutoTokenizer, AutoModel
-import torch
 
-from src import config
+import config
 
-CROSS_ENCODER_PATH = config.CROSS_ENCODER_PATH
 
-# Mean Pooling - Take attention mask into account for correct averaging
-def mean_pooling(model_output, attention_mask):
-    token_embeddings = model_output[0] #First element of model_output contains all token embeddings
-    input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-    return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+model = AutoModel.from_pretrained(config.CROSS_ENCODER_PATH)
+tokenizer = AutoTokenizer.from_pretrained(config.CROSS_ENCODER_PATH)
 
-def cross_check(cross_encoder_model, cross_encoder_tokenizer, source_sentence: str, target_sentence: str):
 
-    # Tokenize sentences
-    encoded_input = cross_encoder_tokenizer([source_sentence,target_sentence], padding=True, truncation=True, return_tensors='pt')
+def _average_pool(last_hidden_states: Tensor, attention_mask: Tensor) -> Tensor:
+    last_hidden = last_hidden_states.masked_fill(~attention_mask[..., None].bool(), 0.0)
+    return last_hidden.sum(dim=1) / attention_mask.sum(dim=1)[..., None]
 
-# Compute token embeddings
-    with torch.no_grad():
-        model_output = cross_encoder_model(**encoded_input)
 
-    # Perform pooling. In this case, max pooling.
-    sentence_embeddings = mean_pooling(model_output, encoded_input['attention_mask'])
+def _compare(input_texts: list[str]) -> list:
+    batch_dict = tokenizer(
+        input_texts, max_length=512, padding=True, truncation=True, return_tensors="pt"
+    )
+
+    outputs = model(**batch_dict)
+    embeddings = _average_pool(outputs.last_hidden_state, batch_dict["attention_mask"])
+
+    # normalize embeddings
+    embeddings = F.normalize(embeddings, p=2, dim=1)
+    scores = (embeddings[:1] @ embeddings[1:].T) * 100
+    scores = scores.detach().squeeze(0)
+    scores = scores.numpy()
+    return scores
+
+
+def find_best_indices(
+    original_prompt, compared_texts: list, threshold: Optional[float], best_n_texts: int
+):
+    # Tokenize the input texts
+    input_texts = [f"query: {original_prompt}"] + [
+        f"passage: {text}" for text in compared_texts
+    ]
+
+    scores = _compare(input_texts)
+
+    if best_n_texts > len(compared_texts):
+        best_n_texts = len(compared_texts)
+
+    best_n_arg_scores = np.argsort(scores)[::-1][:best_n_texts]
+    best_n_arg_scores = best_n_arg_scores.tolist()
+
+    if threshold is not None:
+        return [i for i in best_n_arg_scores if scores[i] >= threshold * 100]
+    else:
+        return best_n_arg_scores
