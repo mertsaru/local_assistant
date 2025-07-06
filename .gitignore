@@ -2,7 +2,9 @@
 .env
 
 # cache
+.venv
 __pycache__
+.vscode
 
 # logs
 *.log*
