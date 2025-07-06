@@ -4,7 +4,6 @@ from typing import LiteralString
 
 from docx import Document
 import pdfplumber
-from tabulate import tabulate
 
 
 def _pdf_reader(file_path: LiteralString) -> LiteralString:
@@ -18,7 +17,6 @@ def _pdf_reader(file_path: LiteralString) -> LiteralString:
     """
 
     content = ""
-    table_number = 0
     with pdfplumber.open(file_path) as pdf:
         for page_number, page in enumerate(pdf.pages, 1):
             content += f"\n\n## Page {page_number}\n"
@@ -27,15 +25,6 @@ def _pdf_reader(file_path: LiteralString) -> LiteralString:
             text = page.extract_text()
             if text:
                 content += f"\n{text}\n"
-
-            # Extract tables
-            tables = page.extract_tables()
-            for table in tables:
-                if table:
-                    table_number += 1
-                    content += f"\ntable-{table_number}\n"
-                    table = tabulate(table, headers="firstrow")
-                    content += table + "\n"
 
     return content
 
