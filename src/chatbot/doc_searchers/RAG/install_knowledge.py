@@ -15,6 +15,7 @@ from llama_index.core import Document
 from llama_index.core.node_parser import SentenceSplitter
 
 from src import config
+from src.config import logger
 from .knowledge_extractors import interpreter, ocr, readers
 
 EMBEDDING_MODEL_PATH = config.EMBEDDING_MODEL_PATH
@@ -96,14 +97,14 @@ def install_knowledge() -> None:
             continue
         if language_folder == "img_to_text_files":
             logger.warning(
-                f"Files in {folder_path} will be processed with default language 'unknown' as it is not specified in folder_languages.json"
+                f"Files in {folder_path} will be processed with default language 'english' as it is not specified"
             )
-            language = "unknown"
+            language = "eng"
         else:
-            language = folder_languages.get(language_folder, "unknown")
+            language = language_folder
         for file_name in files:
             ext = os.path.splitext(file_name)[1].lower()
-            if ext not in [".jpg", ".jpeg", ".png", ".gif"]:
+            if ext not in [".jpg", ".jpeg", ".png"]:
                 logger.warning(
                     f"Skipping file {file_name} in {folder_path} due to unsupported extension {ext}"
                 )
