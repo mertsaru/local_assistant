@@ -1,5 +1,8 @@
-from typing import Generator, Any, Optional, BaseModel
+from typing import Generator, Any, Optional 
+from pydantic import BaseModel
 from logging import Logger
+from operator import itemgetter
+
 
 from httpx import HTTPError
 import requests
@@ -9,10 +12,9 @@ from bs4 import BeautifulSoup
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_ollama import OllamaLLM
 
+
 from src import config
-from chatbot.question_generator.question_generator_functions import generate_questions
-from src.chatbot.question_generator.cross_encoder import page_selector
-from src.chatbot.summary_bot import summary_bot
+from src.chatbot import agents
 
 
 # objects
@@ -47,7 +49,7 @@ def get_search_results(question: str, model, logger):
     url_set = set()
 
     # context awareness
-    generated_questions = generate_questions(
+    generated_questions = agents.question_generator.generate_questions(
         model,
         question,
         number_of_gen_questions=config.PARAMETERS["question_generator"][
@@ -67,15 +69,16 @@ def get_search_results(question: str, model, logger):
         if page_data is not None:
             page_title = page_data.title.name
             page_text = page_data.get_text()
-            page_summary = summary_bot.summarize_page(page_text, model, question)
+            page_summary = agents.summary_bot.summarize_page(page_text, model, question)
             page_summary_list.append(Page(url, page_title, page_summary))
 
     # select best pages related to the question
-    best_page_summary_indices = page_selector.find_best_pages(
+    best_page_summary_indices = agents.cross_encoder.find_best_indices(
         [page.page_text for page in page_summary_list],
         best_n_pages=config.PARAMETERS["question_generator"]["best_n_pages"],
     )
-    best_page_summaries = page_summary_list[best_page_summary_indices]
+    getter = itemgetter(*best_page_summary_indices)
+    best_page_summaries = getter(page_summary_list)
 
     search_result_package = "\n".join(
         f"""URL: {page.url}
