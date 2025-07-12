@@ -42,3 +42,7 @@ TEXT_FILES_PATH = "data/texts"
 
 # Metadatas
 CONTACT_JSON_PATH = "metadata/contact.json"
+
+# API
+PORT = 11987
+HOST = "0.0.0.0"

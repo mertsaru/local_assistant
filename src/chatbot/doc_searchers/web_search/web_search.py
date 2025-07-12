@@ -4,7 +4,7 @@ from operator import itemgetter
 
 
 from httpx import HTTPError
-import requests
+import httpx
 from googlesearch import search
 import yaml
 from bs4 import BeautifulSoup
@@ -35,9 +35,11 @@ def _find_pages(
     return website_lists
 
 
-def _read_page(url: str, logger: Logger) -> Optional[BeautifulSoup]:
+async def _read_page(url: str) -> Optional[BeautifulSoup]:
     try:
-        page = requests.get(url).content
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url)
+        page =  response.content
         soup = BeautifulSoup(page, "html.parser")
         return soup
     except HTTPError as e:
@@ -45,7 +47,7 @@ def _read_page(url: str, logger: Logger) -> Optional[BeautifulSoup]:
         return
 
 
-def get_search_results(question: str, model, logger):
+async def get_search_results(question: str, model):
     url_set = set()
 
     # context awareness
@@ -65,7 +67,7 @@ def get_search_results(question: str, model, logger):
     # summarize pages
     page_summary_list = list()
     for url in url_set:
-        page_data = _read_page(url, logger)
+        page_data = await _read_page(url)
         if page_data is not None:
             page_title = page_data.title.name
             page_text = page_data.get_text()

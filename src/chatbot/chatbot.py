@@ -36,7 +36,7 @@ class Chatbot:
         ]
         self.sum_tokens = 0  # TODO count sys_prompt, human message and ai message
 
-    def generate_answer(self, model: OllamaLLM, question: str, logger):
+    async def generate_answer(self, model: OllamaLLM, question: str):
 
         new_doc_prompt = ""
         # run decider
@@ -48,7 +48,7 @@ class Chatbot:
 
         # if decided web search, search web
         if decision.web_search is True:
-            web_docs = web_search.get_search_results(question, model, logger)
+            web_docs = await web_search.get_search_results(question, model)
             new_doc_prompt += "\n\n" + web_docs
 
         if new_doc_prompt is not "":
