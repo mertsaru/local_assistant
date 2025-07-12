@@ -1,6 +1,5 @@
 from typing import Generator, Any, Optional 
 from pydantic import BaseModel
-from logging import Logger
 from operator import itemgetter
 
 
@@ -14,6 +13,7 @@ from langchain_ollama import OllamaLLM
 
 
 from src import config
+from src.config import logger
 from src.chatbot import agents
 
 
