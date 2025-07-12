@@ -1,4 +1,4 @@
-from typing import Generator, Any, Optional 
+from typing import Generator, Any, Optional
 from pydantic import BaseModel
 from operator import itemgetter
 
@@ -6,15 +6,13 @@ from operator import itemgetter
 from httpx import HTTPError
 import httpx
 from googlesearch import search
-import yaml
 from bs4 import BeautifulSoup
-from langchain_core.messages import SystemMessage, HumanMessage
-from langchain_ollama import OllamaLLM
 
 
 from src import config
 from src.config import logger
 from src.chatbot import agents
+
 
 
 # objects

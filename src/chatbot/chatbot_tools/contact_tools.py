@@ -1,4 +1,5 @@
-from typing import Optional, BaseModel
+from typing import Optional
+from pydantic import BaseModel
 
 from langchain_core.tools import tool
 

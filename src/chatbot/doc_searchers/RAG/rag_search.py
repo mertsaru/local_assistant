@@ -4,8 +4,8 @@ import chromadb
 from llama_index import HuggingFaceEmbeddingFunction, ChromaVectorStore
 from chromadb.config import Settings
 
-import agents
-import config
+from src.chatbot import agents
+from src import config
 
 
 def _connect_to_chroma():

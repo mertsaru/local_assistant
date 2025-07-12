@@ -5,7 +5,7 @@ from torch import Tensor
 import torch.nn.functional as F
 from transformers import AutoTokenizer, AutoModel
 
-import config
+from src import config
 
 
 model = AutoModel.from_pretrained(config.CROSS_ENCODER_PATH)

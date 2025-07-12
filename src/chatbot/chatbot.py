@@ -1,26 +1,25 @@
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langchain_ollama import OllamaLLM
 
+from .chatbot_tools import reminder_tools
+
 from .agents.decider_llm import decider_llm
 from .doc_searchers.web_search import web_search
-from .utils import token_counter, chatbot_tools
 from src import config
 
 
-history_length_threshold = 100_000
 
 SYS_PROMPT_PATH = config.SYS_PROMPT_PATH
 
 with open(SYS_PROMPT_PATH, "r") as f:
     sys_prompt = f.read()
 
+history_length_threshold = config.PARAMETERS["chat_history"]["history_length_threshold"]
 
-tools = {
-    "set_alarm": chatbot_tools.set_alarm,
-    "set_reminder": chatbot_tools.set_reminder,
-    "add_to_shopping_list": chatbot_tools.add_to_shopping_list,
-    "delete_from_shopping_list": chatbot_tools.delete_from_shopping_list,
-    "get_shopping_list": chatbot_tools.get_shopping_list,
+tools = { # TODO make it dynamic?
+    "set_alarm": reminder_tools.set_alarm,
+    "set_reminder": reminder_tools.set_reminder,
+    "add_to_calendar": reminder_tools.add_to_calendar,
 }
 
 
