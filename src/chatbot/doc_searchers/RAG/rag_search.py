@@ -1,10 +1,9 @@
 from typing import List, Optional
-from operator import itemgetter
 
 import chromadb
 from llama_index.core.schema import NodeWithScore
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.core import VectorStoreIndex, StorageContext
+from llama_index.core import VectorStoreIndex
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core import VectorStoreIndex
 from llama_index.core.vector_stores import (
@@ -21,37 +20,25 @@ from src.chatbot import agents
 from src import config
 
 
-def _connect_to_chroma_collection():
-    """
-    Connect to the ChromaDB instance.
-    """
-    client = chromadb.PersistentClient(
-        path=config.RAG_DB_PATH, settings=Settings(anonymized_telemetry=False)
-    )
-    return client.get_or_create_collection(name="main")
+client = chromadb.PersistentClient(
+    path=config.RAG_DB_PATH, settings=Settings(anonymized_telemetry=False)
+)
+main_collection = client.get_or_create_collection(name="main")
+chunk_collection = client.get_or_create_collection(name="chunk")
 
-
-def create_retriever():
-    """
-    Connect to the RAG database and return the collection.
-    """
-    collection = _connect_to_chroma_collection()
-    vector_store = ChromaVectorStore(chroma_collection=collection)
-    index = VectorStoreIndex.from_vector_store(
-        vector_store=vector_store,
-        embed_model=HuggingFaceEmbedding(model_name=config.EMBEDDING_MODEL_PATH),
-    )
-
-    retriever = index.as_retriever(
-        similarity_top_k=config.PARAMETERS["rag"]["number_of_retrievals"],
-        similarity_threshold=config.PARAMETERS["rag"]["retrieval_threshold"],
-    )
-    return retriever
+vector_store = ChromaVectorStore(chroma_collection=chunk_collection)
+index = VectorStoreIndex.from_vector_store(
+    vector_store=vector_store,
+    embed_model=HuggingFaceEmbedding(model_name=config.EMBEDDING_MODEL_PATH),
+)
+retriever: VectorIndexRetriever = index.as_retriever(
+    similarity_top_k=config.PARAMETERS["rag"]["number_of_retrievals"],
+    similarity_threshold=config.PARAMETERS["rag"]["retrieval_threshold"],
+)
 
 
 def _search_rag(
     questions: list[str],
-    retriever: VectorIndexRetriever,
     used_ids: Optional[list[int]] = None,
 ) -> List[NodeWithScore]:
 
@@ -71,58 +58,51 @@ def _search_rag(
     return results
 
 
-def _cross_encoder_selection(
-    prompt, documents: List[NodeWithScore]
-) -> List[NodeWithScore]:
+def _best_doc_ids(question: str, documents: List[NodeWithScore]) -> List[NodeWithScore]:
     doc_texts = [doc.node.text for doc in documents]
-    best_indices = agents.cross_encoder.find_best_indices(prompt, doc_texts)
-    if len(best_indices) == 0:
-        return []
-    elif len(best_indices) == 1:
-        return [documents[best_indices[0]]]
-    else:
-        return itemgetter(*best_indices)(documents)
+    best_indices = agents.cross_encoder.find_best_indices(question, doc_texts)
+    return [documents[i].node.metadata["doc_id"] for i in best_indices]
 
 
 def get_rag_docs(
-    retriever: VectorIndexRetriever,
     question: str,
     used_ids: Optional[List[int]] = None,
-    generator_model: Optional[str] = None,
 ):
 
     generated_questions = agents.question_generator.generate_questions(
-        model=generator_model,
         question=question,
         number_of_gen_questions=config.PARAMETERS["rag"]["number_of_gen_questions"],
     )
 
     question_list = [question] + generated_questions
 
-    documents = _search_rag(
-        question_list=question_list, retriever=retriever, used_ids=used_ids
-    )
+    documents = _search_rag(question_list=question_list, used_ids=used_ids)
 
     # cross encoder
-    best_docs = _cross_encoder_selection(
+    best_doc_ids = _best_doc_ids(
         documents=documents,
         question=question,
+    )
+
+    # get from chroma
+    best_results = main_collection.get(
+        ids=best_doc_ids,
+        include=["documents", "metadatas"],
     )
 
     # summarize each document
     new_used_ids = list()
     search_result_package = "\n"
-    for doc in best_docs:
+    for i in range(len(best_results["ids"])):
         doc_summary = agents.summary_bot.summarize_page(
-            page_text=doc.node.text,
-            model=generator_model,
+            page_text=best_results["documents"][i],
             question=question,
         )
         search_result_package += f"""
-        file name: {doc.node.metadata.get('file_name', 'Unknown')}
-        file path: {doc.node.metadata.get('file_path', 'Unknown')}
+        file name: {best_results["metadatas"][i]["file_name"]}
+        file path: {best_results["metadatas"][i]["file_path"]}
         document: {doc_summary}\n"""
 
-        new_used_ids.append(doc.node.metadata["doc_id"])
+        new_used_ids.append(best_results["ids"][i])
 
     return search_result_package, new_used_ids
