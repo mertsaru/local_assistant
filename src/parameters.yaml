@@ -4,8 +4,17 @@ search:
   best_n_pages: 3
 rag:
   number_of_gen_questions: 5
-  best_n_pages: 3
-model:
-  name: smollm2:1.7b
+  retrieval:
+    threshold: 0.8
+    number_of_retrievals: 5
+  cross_encoder:
+    threshold: .8
+    best_n_pages: 3
+agents:
+  decider_llm: smollm2:1.7b
+  question_gen_llm: smollm2:1.7b
+  summary_llm: smollm2:1.7b
+  answer_gen_llm: smollm2:1.7b
+  topic_finder_llm: smollm2:1.7b
 chat_history:
   history_length_threshold: 100000
