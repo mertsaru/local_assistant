@@ -14,7 +14,6 @@ from src.config import logger
 from src.chatbot import agents
 
 
-
 # objects
 class Page(BaseModel):
     url: str
@@ -37,7 +36,7 @@ async def _read_page(url: str) -> Optional[BeautifulSoup]:
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(url)
-        page =  response.content
+        page = response.content
         soup = BeautifulSoup(page, "html.parser")
         return soup
     except HTTPError as e:
@@ -45,12 +44,11 @@ async def _read_page(url: str) -> Optional[BeautifulSoup]:
         return
 
 
-async def get_search_results(question: str, model):
+async def get_search_results(question: str):
     url_set = set()
 
     # context awareness
     generated_questions = agents.question_generator.generate_questions(
-        model,
         question,
         number_of_gen_questions=config.PARAMETERS["question_generator"][
             "number_of_gen_questions"
@@ -69,7 +67,7 @@ async def get_search_results(question: str, model):
         if page_data is not None:
             page_title = page_data.title.name
             page_text = page_data.get_text()
-            page_summary = agents.summary_bot.summarize_page(page_text, model, question)
+            page_summary = agents.summary_bot.summarize_page(page_text, question)
             page_summary_list.append(Page(url, page_title, page_summary))
 
     # select best pages related to the question

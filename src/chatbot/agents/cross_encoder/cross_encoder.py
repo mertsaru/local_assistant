@@ -33,9 +33,7 @@ def _compare(input_texts: list[str]) -> list:
     return scores
 
 
-def find_best_indices(
-    original_prompt, compared_texts: list, threshold: Optional[float], best_n_texts: int
-):
+def find_best_indices(original_prompt, compared_texts: list) -> list[int]:
     # Tokenize the input texts
     input_texts = [f"query: {original_prompt}"] + [
         f"passage: {text}" for text in compared_texts
@@ -43,13 +41,16 @@ def find_best_indices(
 
     scores = _compare(input_texts)
 
-    if best_n_texts > len(compared_texts):
-        best_n_texts = len(compared_texts)
+    best_n_texts = min(config.PARAMETERS["best_n_texts"], len(compared_texts))
 
     best_n_arg_scores = np.argsort(scores)[::-1][:best_n_texts]
     best_n_arg_scores = best_n_arg_scores.tolist()
 
-    if threshold is not None:
-        return [i for i in best_n_arg_scores if scores[i] >= threshold * 100]
+    if config.PARAMETERS["retrieval_threshold"] != 0:
+        return [
+            i
+            for i in best_n_arg_scores
+            if scores[i] >= config.PARAMETERS["retrieval_threshold"] * 100
+        ]
     else:
         return best_n_arg_scores
