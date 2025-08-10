@@ -4,47 +4,73 @@ The data searched in Llama-index DB since Llama-index DB built with smaller chun
 """
 
 import os
-from typing import Literal, LiteralString, Optional
+from typing import Literal, LiteralString
 import uuid
 import json
 
-import llama_index
+
 import chromadb
 from chromadb.config import Settings
+from langchain.text_splitter import NLTKTextSplitter
 from llama_index.core import Document
-from llama_index.core.node_parser import SentenceSplitter
+from llama_index.vector_stores.chroma import ChromaVectorStore
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
 from src import config
 from src.config import logger
 from .knowledge_extractors import interpreter, ocr, readers
+from . import extract_rag_topics
 
-EMBEDDING_MODEL_PATH = config.EMBEDDING_MODEL_PATH
+
 RAG_DB_PATH = config.RAG_DB_PATH
+
+bare_splitter = NLTKTextSplitter(chunk_size=1024, chunk_overlap=128, separator=" ")
 
 # KNOWLEDGE PATHS
 OCR_FILES_PATH = config.OCR_FILES_PATH
 INTERPRETATION_FILES_PATH = config.INTERPRETATION_FILES_PATH
 TEXT_FILES_PATH = config.TEXT_FILES_PATH
-OCR_FOLDER_LANG_PATH = config.OCR_FOLDER_LANG_PATH
 
 client = chromadb.PersistentClient(
     path=RAG_DB_PATH, settings=Settings(anonymized_telemetry=False)
 )
 
-collection = client.get_or_create_collection(name="main")
-collection = llama_index.ChromaVectorStore(
-    collection=collection,
-    embedding_function=llama_index.HuggingFaceEmbeddingFunction(
-        model_name=EMBEDDING_MODEL_PATH
-    ),
+collection_chunk = client.get_or_create_collection(name="chunk")
+vector_store = ChromaVectorStore(
+    collection=collection_chunk,
+    embedding_function=HuggingFaceEmbedding(model_name=config.EMBEDDING_MODEL_PATH),
 )
 
-with open(OCR_FOLDER_LANG_PATH, "r", encoding="utf-8") as f:
+collection_main = client.get_or_create_collection(
+    name="main", embedding_function=None
+)  # TODO change main collection to just document store without embedding db for efficiency
+
+with open(config.FOLDER_LANGUAGE_PATH, "r", encoding="utf-8") as f:
     folder_languages = json.load(f)
 
 
-def _split_text(text: str) -> list[str]:
-    pass
+def _add_to_chunk_collection(
+    content_piece: str, doc_id: str, metadata: dict, language: str
+) -> None:
+    bare_splitter._chunk_size = 256
+    bare_splitter._chunk_overlap = 32
+    cont_pieces = bare_splitter.split_text(content_piece)
+    for cont_piece in cont_pieces:
+        document = Document(
+            id_=doc_id,
+            text_resource=cont_piece,
+            metadata={
+                "doc_id": doc_id,
+            }
+            | metadata,  # Merge with additional metadata
+        )
+
+        # Add the document to the collection
+        vector_store.add([document])
+
+
+def _add_to_main_collection(content_piece: str, doc_id: str, metadata: dict):
+    collection_main.add(ids=[doc_id], documents=[content_piece], metadatas=[metadata])
 
 
 def _install_file(
@@ -52,56 +78,57 @@ def _install_file(
     file_type: Literal["ocr", "interpretation", "text"],
     title: LiteralString,
     content: LiteralString,
-    language = Optional[LiteralString] = None,
+    language: LiteralString,
 ) -> None:
 
     if not content:
         return
 
-    content_splits = _split_text(content)
+    language = folder_languages.get(language, "unknown")
+    bare_splitter._language = language
+    content_splits = bare_splitter.split_text(content)
 
     content_uuids = [
-        str(uuid.uuid4()) for _ in content_splits
-    ]  # TODO create from content
+        str(uuid.uuid3(uuid.NAMESPACE_DNS, content_piece))
+        for content_piece in content_splits
+    ]
     split_package = zip(content_splits, content_uuids)
-
+    metadata = {
+        "source": file_path,
+        "title": title,
+        "type": file_type,
+        "language": language if language else "unknown",
+    }
     for content_piece, doc_id in split_package:
-        # Create a Document object
-        document = Document(
-            id=doc_id,
-            text=content_piece,
-            metadata={
-                "source": file_path,
-                "file_name": os.path.basename(file_path),
-                "title": title,
-                "type": file_type,
-                "language": language if language else "unknown",
-            },
-        )
 
-        # Add the document to the collection
-        collection.add_documents([document])
+        _add_to_main_collection(content_piece, doc_id, metadata)
+
+        _add_to_chunk_collection(content_piece, doc_id, metadata, language=language)
+
+        extract_rag_topics.add_to_topics(content_piece)
+
+
+def _check_language_folder(folder_name: str, base_folder) -> bool:
+    if folder_name == base_folder:
+        return True
+    elif folder_name not in folder_languages.keys():
+        logger.warning(
+            f'Skipping folder "{folder_name}" due to unsupported language {folder_name}'
+        )
+        return True
+    else:
+        return False
 
 
 def install_knowledge() -> None:
     """Installs all knowledge files to RAG DB."""
 
-
     # Install OCR files
-    for folder_path , _, files in os.walk(OCR_FILES_PATH):
-        language_folder = folder_path.basename(folder_path)
-        if language_folder not in folder_languages.keys() and language_folder != "img_to_text_files":
-            logger.warning(
-                f"Skipping folder {folder_path} due to unsupported language {language}"
-            )
+    for folder_path, _, files in os.walk(OCR_FILES_PATH):
+        language = os.path.basename(folder_path)
+
+        if _check_language_folder(language, os.path.basename(OCR_FILES_PATH)):
             continue
-        if language_folder == "img_to_text_files":
-            logger.warning(
-                f"Files in {folder_path} will be processed with default language 'english' as it is not specified"
-            )
-            language = "eng"
-        else:
-            language = language_folder
         for file_name in files:
             ext = os.path.splitext(file_name)[1].lower()
             if ext not in [".jpg", ".jpeg", ".png"]:
@@ -114,7 +141,12 @@ def install_knowledge() -> None:
             _install_file(file_path, "ocr", title, content, language)
 
     # Install interpretation files
-    for folder_path , _, files in os.walk(INTERPRETATION_FILES_PATH):
+    for folder_path, _, files in os.walk(INTERPRETATION_FILES_PATH):
+        language = os.path.basename(folder_path)
+        if _check_language_folder(
+            language, os.path.basename(INTERPRETATION_FILES_PATH)
+        ):
+            continue
         for file_name in files:
             ext = os.path.splitext(file_name)[1].lower()
             if ext not in [".jpg", ".jpeg", ".png", ".gif"]:
@@ -124,10 +156,20 @@ def install_knowledge() -> None:
                 continue
             file_path = os.path.join(folder_path, file_name)
             title, content = interpreter.interpret(file_path)
-            _install_file(file_path, "interpretation", title, content)
+            _install_file(
+                file_path, "interpretation", title, content, language=language
+            )
 
     # Install text files
-    for file_name in os.listdir(TEXT_FILES_PATH):
-        file_path = os.path.join(TEXT_FILES_PATH, file_name)
+    for folder_path, _, files in os.walk(TEXT_FILES_PATH):
+        language = os.path.basename(folder_path)
+        if _check_language_folder(language, os.path.basename(TEXT_FILES_PATH)):
+            continue
+    for file_name in files:
+        file_path = os.path.join(folder_path, file_name)
         title, content = readers.text_reader(file_path)
-        _install_file(file_path, "text", title, content)
+        _install_file(file_path, "text", title, content, language=language)
+
+
+if __name__ == "__main__":
+    install_knowledge()
