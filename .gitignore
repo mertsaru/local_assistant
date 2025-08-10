@@ -14,5 +14,9 @@ scrap.ipynb
 scrap.py
 TODO.md
 
-# future plans
-local_knowledge
+# personal files
+metadata/*
+
+
+# Legacy
+sentence_splitter.py
