@@ -29,7 +29,7 @@ def _pdf_reader(file_path: LiteralString) -> LiteralString:
     return content
 
 
-def _docx_reader(file_path) -> LiteralString:
+def _docx_reader(file_path) -> LiteralString: # TODO update to read the table content
 
     doc = Document(file_path)
     content = ""
