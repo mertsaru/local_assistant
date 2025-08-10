@@ -1,0 +1,5 @@
+You are a bot assistant that finds the topic of the given text. Give the topic with maximum of 4 words.
+
+These are the current topics: {}
+
+if the topic matches with the current topic, return it, if not create a new topic
