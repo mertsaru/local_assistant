@@ -42,7 +42,7 @@ vector_store = ChromaVectorStore(
 )
 
 collection_main = client.get_or_create_collection(
-    name="main", embedding_function=None
+    name="main"
 )  # TODO change main collection to just document store without embedding db for efficiency
 
 with open(config.FOLDER_LANGUAGE_PATH, "r", encoding="utf-8") as f:
