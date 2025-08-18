@@ -47,7 +47,7 @@ def _search_rag(
             MetadataFilter(key="doc_id", value=used_ids, operator=FilterOperator.NIN),
         ]
     )
-    retriever._filters = filters if used_ids else None
+    retriever._filters = filters if used_ids != [] else None
     for question in questions:
         results = retriever.retrieve(
             query=question,
@@ -91,18 +91,18 @@ def get_rag_docs(
     )
 
     # summarize each document
-    new_used_ids = list()
-    search_result_package = "\n"
+    new_used_ids = []
+    doc_packages = []
     for i in range(len(best_results["ids"])):
         doc_summary = agents.summary_bot.summarize_page(
             page_text=best_results["documents"][i],
             question=question,
         )
-        search_result_package += f"""
+        doc_packages.append(f"""
         file name: {best_results["metadatas"][i]["file_name"]}
         file path: {best_results["metadatas"][i]["file_path"]}
-        document: {doc_summary}\n"""
+        document: {doc_summary}\n""")
 
         new_used_ids.append(best_results["ids"][i])
 
-    return search_result_package, new_used_ids
+    return doc_packages, new_used_ids
