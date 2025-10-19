@@ -25,6 +25,7 @@ This project enables user to run a local assistant with access to Google Search,
       - [PDF files](#pdf-files)
     - [Images with text](#images-with-text)
     - [Images without text](#images-without-text)
+  - [API](#api)
 
 ## 1.2. Requirements
 
@@ -75,3 +76,6 @@ number_of_gen_questions (int): To get the context of the question (or prompt) th
 if you want to add more language support, you need to first add the language to Tesseract during the installation. If you haven't, install Tesseract again with the required language. Then create the language folder in [data/img_to_text_files](./data/img_to_text_files). The language folder name should be same with the language input with the [pytesseract](https://github.com/madmaze/pytesseract) module.
 
 ### Images without text
+
+## API
+API runs on port 11987 on your local IP address with HTTP protocol by default. You can change the port number on config.py file .
