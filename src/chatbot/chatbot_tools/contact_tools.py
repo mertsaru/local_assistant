@@ -20,6 +20,15 @@ class Contact(BaseModel):
 
 @tool
 def add_contact(name: str, Contact: Contact):
+    """create a new contact.
+
+    Args:
+        name (str): name of the contact
+        Contact (Contact): contact object containing telegram_number and email
+
+    Raises:
+        ValueError: if contact with the same name already exists
+    """
     with open(config.CONTACT_JSON_PATH, "r", encoding="utf-8") as f:
         contacts = json.load(f)
 
@@ -37,7 +46,16 @@ def add_contact(name: str, Contact: Contact):
 
 
 @tool
-def update_contact(name, Contact):
+def update_contact(name: str, Contact: Contact):
+    """updates the contact information of an existing contact.
+
+    Args:
+        name (str): name of the contact to update
+        Contact (Contact): contact object containing telegram_number and email
+
+    Raises:
+        ValueError: if contact with the given name does not exist
+    """
     with open(config.CONTACT_JSON_PATH, "r", encoding="utf-8") as f:
         contacts = json.load(f)
 
@@ -57,6 +75,14 @@ def update_contact(name, Contact):
 
 @tool
 def delete_contact(name: str):
+    """delete a contact by name.
+
+    Args:
+        name (str): name of the contact to delete
+
+    Raises:
+        ValueError: if contact with the given name does not exist 
+    """
     with open(config.CONTACT_JSON_PATH, "r", encoding="utf-8") as f:
         contacts = json.load(f)
 
