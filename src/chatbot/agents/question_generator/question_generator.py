@@ -1,7 +1,7 @@
-from typing_extensions import Annotated, TypedDict
+from pydantic import BaseModel, Field
 
 from langchain_core.messages import SystemMessage, HumanMessage
-from langchain_ollama import OllamaLLM
+from langchain.chat_models import init_chat_model
 
 from src import config
 
@@ -10,20 +10,23 @@ with open(config.QUESTION_GEN_SYS_PROMPT_PATH, "r") as f:
     question_gen_sys_prompt = f.read()
 
 
-class GenQuestion(TypedDict):
+class GenQuestion(BaseModel):
+    generated_questions: list[str] = Field(
+        default=[], description="list of similar generated questions"
+    )
 
-    generated_questions: Annotated[list[str], "List of generated questions"]
 
-question_gen_llm = OllamaLLM(
+question_gen_llm = init_chat_model(
     model=config.PARAMETERS["agents"]["question_gen_llm"],
-).with_structured_output(GenQuestion())
+    model_provider="ollama",
+).with_structured_output(GenQuestion)
 
 
 def generate_questions(question: str, number_of_gen_questions: int) -> list[str]:
     """Uses Ollama model to generate similar questions to a given text. So the model would have a general context of the text.
 
     Args:
-        
+
         question (str): the prompt of the user
         number_of_gen_questions (int): number of generated questions
 
@@ -38,4 +41,4 @@ def generate_questions(question: str, number_of_gen_questions: int) -> list[str]
 
     response: GenQuestion = question_gen_llm.invoke(history)
 
-    return response["generated_questions"]
+    return response.generated_questions

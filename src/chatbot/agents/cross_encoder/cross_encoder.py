@@ -1,5 +1,3 @@
-from typing import Optional
-
 import numpy as np
 from torch import Tensor
 import torch.nn.functional as F
@@ -33,7 +31,7 @@ def _compare(input_texts: list[str]) -> list:
     return scores
 
 
-def find_best_indices(original_prompt, compared_texts: list) -> list[int]:
+def find_best_indices(original_prompt, compared_texts: list, best_n_pages:int, threshold) -> list[int]:
     # Tokenize the input texts
     input_texts = [f"query: {original_prompt}"] + [
         f"passage: {text}" for text in compared_texts
@@ -41,16 +39,16 @@ def find_best_indices(original_prompt, compared_texts: list) -> list[int]:
 
     scores = _compare(input_texts)
 
-    best_n_texts = min(config.PARAMETERS["best_n_texts"], len(compared_texts))
+    best_n_texts = min(best_n_pages, len(compared_texts))
 
     best_n_arg_scores = np.argsort(scores)[::-1][:best_n_texts]
     best_n_arg_scores = best_n_arg_scores.tolist()
 
-    if config.PARAMETERS["retrieval_threshold"] != 0:
+    if threshold != 0:
         return [
             i
             for i in best_n_arg_scores
-            if scores[i] >= config.PARAMETERS["retrieval_threshold"] * 100
+            if scores[i] >= threshold * 100
         ]
     else:
-        return best_n_arg_scores
+        return best_n_arg_scores if isinstance(best_n_arg_scores, list) else [best_n_arg_scores]

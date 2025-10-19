@@ -2,7 +2,7 @@ from typing import List, Optional
 
 import chromadb
 from llama_index.core.schema import NodeWithScore
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.core import VectorStoreIndex
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core import VectorStoreIndex
@@ -16,6 +16,7 @@ from llama_index.core.indices.vector_store.retrievers import (
     VectorIndexRetriever,
 )
 
+
 from src.chatbot import agents
 from src import config
 
@@ -26,14 +27,19 @@ client = chromadb.PersistentClient(
 main_collection = client.get_or_create_collection(name="main")
 chunk_collection = client.get_or_create_collection(name="chunk")
 
+ollama_embedding = OllamaEmbedding(
+    model_name="embeddinggemma",
+)
+
+
 vector_store = ChromaVectorStore(chroma_collection=chunk_collection)
 index = VectorStoreIndex.from_vector_store(
-    vector_store=vector_store,
-    embed_model=HuggingFaceEmbedding(model_name=config.EMBEDDING_MODEL_PATH),
+    vector_store=vector_store, embed_model=ollama_embedding
 )
+
 retriever: VectorIndexRetriever = index.as_retriever(
-    similarity_top_k=config.PARAMETERS["rag"]["number_of_retrievals"],
-    similarity_threshold=config.PARAMETERS["rag"]["retrieval_threshold"],
+    similarity_top_k=config.PARAMETERS["rag"]["retrieval"]["number_of_retrievals"],
+    similarity_threshold=config.PARAMETERS["rag"]["retrieval"]["threshold"],
 )
 
 
@@ -51,8 +57,7 @@ def _search_rag(
     for question in questions:
         results = retriever.retrieve(
             query=question,
-            n_results=config.PARAMETERS["rag"]["number_of_retrievals"],
-            threshold=config.PARAMETERS["rag"]["retrieval_threshold"],
+            similarity_top_k=config.PARAMETERS["rag"]["retrieval"]["number_of_retrievals"],
         )
 
     return results
@@ -76,7 +81,7 @@ def get_rag_docs(
 
     question_list = [question] + generated_questions
 
-    documents = _search_rag(question_list=question_list, used_ids=used_ids)
+    documents = _search_rag(questions=question_list, used_ids=used_ids)
 
     # cross encoder
     best_doc_ids = _best_doc_ids(
@@ -98,10 +103,12 @@ def get_rag_docs(
             page_text=best_results["documents"][i],
             question=question,
         )
-        doc_packages.append(f"""
+        doc_packages.append(
+            f"""
         file name: {best_results["metadatas"][i]["file_name"]}
         file path: {best_results["metadatas"][i]["file_path"]}
-        document: {doc_summary}\n""")
+        document: {doc_summary}\n"""
+        )
 
         new_used_ids.append(best_results["ids"][i])
 

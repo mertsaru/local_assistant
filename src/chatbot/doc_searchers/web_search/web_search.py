@@ -1,4 +1,4 @@
-from typing import Generator, Any, Optional
+from typing import Generator, Any, Iterable, Optional
 from pydantic import BaseModel
 from operator import itemgetter
 
@@ -28,7 +28,7 @@ number_of_pages = config.PARAMETERS["search"]["number_of_pages"]
 def _find_pages(
     question, number_of_pages=number_of_pages
 ) -> Generator[str | Any, Any, None]:
-    website_lists = search(question, stop=number_of_pages, pause=2)
+    website_lists = search(question, num_results=number_of_pages, sleep_interval=2)
     return website_lists
 
 
@@ -50,7 +50,7 @@ async def get_search_results(question: str):
     # context awareness
     generated_questions = agents.question_generator.generate_questions(
         question,
-        number_of_gen_questions=config.PARAMETERS["question_generator"][
+        number_of_gen_questions=config.PARAMETERS["search"][
             "number_of_gen_questions"
         ],
     )
@@ -72,17 +72,29 @@ async def get_search_results(question: str):
 
     # select best pages related to the question
     best_page_summary_indices = agents.cross_encoder.find_best_indices(
+        question,
         [page.page_text for page in page_summary_list],
-        best_n_pages=config.PARAMETERS["question_generator"]["best_n_pages"],
+        best_n_pages=config.PARAMETERS["search"]["best_n_pages"],
+        threshold=config.PARAMETERS["search"]["threshold"],
     )
-    getter = itemgetter(*best_page_summary_indices)
-    best_page_summaries = getter(page_summary_list)
+    if best_page_summary_indices:
+        getter = itemgetter(*best_page_summary_indices)
+        best_page_summaries = getter(page_summary_list)
+        best_page_summaries = (
+            best_page_summaries
+            if isinstance(best_page_summaries, Iterable)
+            else (best_page_summaries,)
+        )
 
-    search_result_package = "\n".join(
-        f"""URL: {page.url}
-        Title: {page.page_title}
-        content: {page.page_text}
-        """
-        for page in best_page_summaries
-    )
+        search_result_package = "\n".join(
+            f"""URL: {page.url}
+            Title: {page.page_title}
+            content: {page.page_text}
+            """
+            for page in best_page_summaries
+        )
+    else:
+        search_result_package = ""
     return search_result_package
+
+# TODO add phising scam catcher
