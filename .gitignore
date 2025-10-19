@@ -16,7 +16,11 @@ TODO.md
 
 # personal files
 metadata/*
-
+RAG_DB/
 
 # Legacy
 sentence_splitter.py
+
+
+# Models
+models/
