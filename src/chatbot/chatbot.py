@@ -15,8 +15,6 @@ with open(config.SYS_PROMPT_PATH, "r") as f:
 
 tools = {  # TODO make it dynamic?
     "set_alarm": reminder_tools.set_alarm,
-    "set_reminder": reminder_tools.set_reminder,
-    "add_to_calendar": reminder_tools.add_to_calendar,
 }
 
 answer_gen_llm = init_chat_model(
@@ -37,7 +35,7 @@ class Chatbot:
 
         self._outer_text_sources = (
             []
-        )  # this is used to store the text sources of the documents, so the model can use them in the answer generation
+        )  # store the text sources of the documents, so the model can use them in the answer generation
 
         self._used_ids = []
 
@@ -87,17 +85,18 @@ class Chatbot:
         new_doc_prompt += "".join(
             [f"\n\n{text}" for text in self._outer_text_sources])
 
+        history_copy = deepcopy(self._history)
+
         # build history if any doc is found
         if new_doc_prompt != "":
-            history_copy = deepcopy(self._history)
-
             history_copy[1].content += new_doc_prompt
 
         # run model
         ai_response = answer_gen_llm.invoke(history_copy + [HumanMessage(question)])
+        
         ## tool calls
+        tool_messages = []
         if len(ai_response.tool_calls) != 0:
-            tool_messages = []
             for tool in ai_response.tool_calls:
                 selected_tool = tools[tool["name"].lower()]
                 tool_msg = selected_tool.invoke(tool)
