@@ -2,6 +2,7 @@ search:
   number_of_pages: 3
   number_of_gen_questions: 5
   best_n_pages: 3
+  threshold: 0.7
 rag:
   number_of_gen_questions: 5
   retrieval:
@@ -11,10 +12,14 @@ rag:
     threshold: .8
     best_n_pages: 3
 agents:
-  decider_llm: smollm2:1.7b
-  question_gen_llm: smollm2:1.7b
-  summary_llm: smollm2:1.7b
-  answer_gen_llm: smollm2:1.7b
-  topic_finder_llm: smollm2:1.7b
+  decider_llm: smollm2:latest
+  question_gen_llm: smollm2:latest
+  summary_llm: smollm2:latest
+  answer_gen_llm: smollm2:latest
+  topic_finder_llm: smollm2:latest
 chat_history:
   history_length_threshold: 100000
+api:
+  port: 5037
+  host: 0.0.0.0
+  workers: 1

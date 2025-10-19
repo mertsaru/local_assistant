@@ -1,5 +1,5 @@
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_ollama import OllamaLLM
+from langchain.chat_models import init_chat_model
 
 from src import config
 
@@ -7,8 +7,8 @@ from src import config
 with open(config.SUMMARY_LLM_SYS_PROMPT_PATH, "r") as f:
     summary_llm_sys_prompt = f.read()
 
-summary_llm = OllamaLLM(
-    model=config.PARAMETERS["agents"]["summary_llm"],
+summary_llm = init_chat_model(
+    model=config.PARAMETERS["agents"]["summary_llm"], model_provider="ollama",
 )
 
 

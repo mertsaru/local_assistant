@@ -1,6 +1,6 @@
 from copy import deepcopy
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
-from langchain_ollama import OllamaLLM
+from langchain.chat_models import init_chat_model
 from langchain_core.messages.utils import count_tokens_approximately
 
 from .chatbot_tools import reminder_tools
@@ -19,8 +19,8 @@ tools = {  # TODO make it dynamic?
     "add_to_calendar": reminder_tools.add_to_calendar,
 }
 
-answer_gen_llm = OllamaLLM(
-    model=config.PARAMETERS["agents"]["answer_gen_llm"],
+answer_gen_llm = init_chat_model(
+    model=config.PARAMETERS["agents"]["answer_gen_llm"],model_provider="ollama",
 ).bind_tools(list(tools.values()))
 
 
