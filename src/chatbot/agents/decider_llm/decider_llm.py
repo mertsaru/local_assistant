@@ -39,4 +39,6 @@ def decide_data_source(question: str) -> Decision:
     ]
 
     decision = decision_model.invoke(history)
+    if os.path.exists(config.RAG_DATA_TOPICS_PATH) is False:
+        decision.rag_search = False  # if no data in RAG, do not use RAG
     return decision
