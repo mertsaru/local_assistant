@@ -1,17 +1,8 @@
 import logging
-import yaml
 import logging.config
 import json
 import os
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
-# Parameters
-PARAM_PATH = "src/parameters.yaml"
-with open(PARAM_PATH, "r") as f:
-    PARAMETERS = yaml.safe_load(f)
 
 # Logger
 LOG_CONFIG_PATH = "src/logs_config.json"
