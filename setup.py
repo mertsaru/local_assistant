@@ -1,20 +1,11 @@
-# TODO fill the setup
-
 import nltk
 from huggingface_hub import snapshot_download
+import json
 
 from src import config
 
 
-# install models
-
-
-## embedding encoder
-
-
-## cross encoder model
-
-
+# cross encoder model
 snapshot_download(
     repo_id="intfloat/multilingual-e5-base",
     local_dir=config.CROSS_ENCODER_PATH,
@@ -22,9 +13,7 @@ snapshot_download(
 )
 
 
-## interpreter
-
-## sentence splitter
+# sentence splitter
 nltk.download("punkt_tab")
 
 
@@ -33,5 +22,10 @@ nltk.download("punkt_tab")
 ## metadata
 
 ### contact.json
-
+with open(config.CONTACT_JSON_PATH, "w") as f:
+    json.dump(
+        {},f)
 ### shopping_list.json
+with open(config.SHOPPING_LIST_PATH, "w") as f:
+    json.dump(
+        {},f)
