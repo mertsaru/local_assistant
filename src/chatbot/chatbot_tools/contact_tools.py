@@ -47,20 +47,19 @@ def add_contact(name: str, Contact: Contact):
 
 @tool
 def update_contact(name: str, Contact: Contact):
-    """updates the contact information of an existing contact.
+    """adds or updates the contact information of a contact.
 
     Args:
-        name (str): name of the contact to update
+        name (str): name of the contact to add or update
         Contact (Contact): contact object containing telegram_number and email
-
-    Raises:
-        ValueError: if contact with the given name does not exist
+    
+    Returns: None
     """
     with open(config.CONTACT_JSON_PATH, "r", encoding="utf-8") as f:
         contacts = json.load(f)
 
     if name not in contacts:
-        raise ValueError(f"Contact with name {name} does not exist.")
+        return f"Contact with name {name} does not exist. Please give me the contact name with the contact number or email to add the contact."
 
     if Contact.telegram_number is not None:
         contacts[name]["telegram_number"] = Contact.telegram_number

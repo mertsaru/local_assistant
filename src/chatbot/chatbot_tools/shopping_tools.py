@@ -23,6 +23,8 @@ def add_to_shopping_list(items: list[str]) -> None:
 
     with open(SHOPPING_LIST_PATH, "w", encoding="utf-8") as f:
         json.dump(shopping_list, f, ensure_ascii=False, indent=4)
+    
+    return f"Added {items} to the shopping list."
 
 
 @tool
