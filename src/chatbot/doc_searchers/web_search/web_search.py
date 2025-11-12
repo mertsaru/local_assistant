@@ -1,7 +1,7 @@
 from typing import Generator, Any, Iterable, Optional
 from pydantic import BaseModel
 from operator import itemgetter
-
+import os
 
 from httpx import HTTPError
 import httpx
@@ -9,7 +9,6 @@ from googlesearch import search
 from bs4 import BeautifulSoup
 
 
-from src import config
 from src.config import logger
 from src.chatbot import agents
 
@@ -22,7 +21,7 @@ class Page(BaseModel):
 
 
 # parameters
-number_of_pages = config.PARAMETERS["search"]["number_of_pages"]
+number_of_pages = os.getenv("number_of_pages")
 
 
 def _find_pages(
@@ -50,9 +49,7 @@ async def get_search_results(question: str):
     # context awareness
     generated_questions = agents.question_generator.generate_questions(
         question,
-        number_of_gen_questions=config.PARAMETERS["search"][
-            "number_of_gen_questions"
-        ],
+        number_of_gen_questions=os.getenv("NUMBER_OF_GEN_QUESTIONS"),
     )
 
     # find pages
@@ -74,8 +71,8 @@ async def get_search_results(question: str):
     best_page_summary_indices = agents.cross_encoder.find_best_indices(
         question,
         [page.page_text for page in page_summary_list],
-        best_n_pages=config.PARAMETERS["search"]["best_n_pages"],
-        threshold=config.PARAMETERS["search"]["threshold"],
+        best_n_pages=os.getenv("BEST_N_PAGES"),
+        threshold=os.getenv("THRESHOLD"),
     )
     if best_page_summary_indices:
         getter = itemgetter(*best_page_summary_indices)

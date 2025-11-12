@@ -1,4 +1,5 @@
 from typing import List, Optional
+import os
 
 import chromadb
 from llama_index.core.schema import NodeWithScore
@@ -38,8 +39,8 @@ index = VectorStoreIndex.from_vector_store(
 )
 
 retriever: VectorIndexRetriever = index.as_retriever(
-    similarity_top_k=config.PARAMETERS["rag"]["retrieval"]["number_of_retrievals"],
-    similarity_threshold=config.PARAMETERS["rag"]["retrieval"]["threshold"],
+    similarity_top_k=os.getenv("NUMBER_OF_RETRIEVALS"),
+    similarity_threshold=os.getenv("THRESHOLD"),
 )
 
 
@@ -57,7 +58,7 @@ def _search_rag(
     for question in questions:
         results = retriever.retrieve(
             query=question,
-            similarity_top_k=config.PARAMETERS["rag"]["retrieval"]["number_of_retrievals"],
+            similarity_top_k=os.getenv("NUMBER_OF_RETRIEVALS"),
         )
 
     return results

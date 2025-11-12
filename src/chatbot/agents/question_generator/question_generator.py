@@ -17,7 +17,7 @@ class GenQuestion(BaseModel):
 
 
 question_gen_llm = init_chat_model(
-    model=config.PARAMETERS["agents"]["question_gen_llm"],
+    model=os.getenv("QUESTION_GEN_LLM"),
     model_provider="ollama",
 ).with_structured_output(GenQuestion)
 

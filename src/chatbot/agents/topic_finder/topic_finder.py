@@ -1,4 +1,5 @@
 from typing import Annotated, TypedDict
+import os
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_ollama import OllamaLLM
@@ -13,7 +14,7 @@ with open(config.TOPIC_FINDER_LLM_SYS_PROMPT_PATH, "r") as f:
     topic_finder_llm_sys_prompt = f.read()
 
 topic_finder_llm = OllamaLLM(
-    model=config.PARAMETERS["agents"]["topic_finder_llm"],
+    model=os.getenv("TOPIC_FINDER_LLM"),
 ).with_structured_output(Topic())
 
 

@@ -1,9 +1,11 @@
 from copy import deepcopy
+import os
+
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langchain.chat_models import init_chat_model
 from langchain_core.messages.utils import count_tokens_approximately
 
-from .chatbot_tools import reminder_tools
+from .chatbot_tools import reminder_tools, contact_tools, shopping_tools
 from .agents.decider_llm import decider_llm
 from . import doc_searchers
 from src import config
@@ -15,10 +17,19 @@ with open(config.SYS_PROMPT_PATH, "r") as f:
 
 tools = {  # TODO make it dynamic?
     "set_alarm": reminder_tools.set_alarm,
+    "send_telegram_message_to_contact": contact_tools.send_telegram_message_to_contact,
+    "send_email_to_contact": contact_tools.send_email_to_contact,
+    "delete_contact": contact_tools.delete_contact,
+    "update_contact": contact_tools.update_contact,
+    "add_contact": contact_tools.add_contact,
+    "add_to_shopping_list": shopping_tools.add_to_shopping_list,
+    "delete_from_shopping_list": shopping_tools.add_to_shopping_list,
+    "get_shopping_list": shopping_tools.add_to_shopping_list,
 }
 
 answer_gen_llm = init_chat_model(
-    model=config.PARAMETERS["agents"]["answer_gen_llm"],model_provider="ollama",
+    model=os.getenv("ANSWER_GEN_LLM"),
+    model_provider="ollama",
 ).bind_tools(list(tools.values()))
 
 
@@ -73,17 +84,16 @@ class Chatbot:
             self._last_token_count
             + new_doc_prompt_token_count
             + count_tokens_approximately(self._outer_text_sources)
-            > config.PARAMETERS["chat_history"]["history_length_threshold"]
+            > os.getenv("HISTORY_LENGTH_THRESHOLD"
         ):
             extra_tokens = (
                 self._last_token_count
                 + new_doc_prompt_token_count
-                - config.PARAMETERS["chat_history"]["history_length_threshold"]
+                - os.getenv("HISTORY_LENGTH_THRESHOLD")
             )
 
             self._truncate_chat(extra_tokens)
-        new_doc_prompt += "".join(
-            [f"\n\n{text}" for text in self._outer_text_sources])
+        new_doc_prompt += "".join([f"\n\n{text}" for text in self._outer_text_sources])
 
         history_copy = deepcopy(self._history)
 
@@ -93,7 +103,7 @@ class Chatbot:
 
         # run model
         ai_response = answer_gen_llm.invoke(history_copy + [HumanMessage(question)])
-        
+
         ## tool calls
         tool_messages = []
         if len(ai_response.tool_calls) != 0:
@@ -112,7 +122,10 @@ class Chatbot:
 
         # update history
         self._history += (
-            [HumanMessage(question)] + [ai_response] + tool_messages + tool_response
+            [HumanMessage(question)]
+            + [ai_response]
+            + tool_messages
+            + ([tool_response] if tool_response != [] else [])
         )
 
         self._last_token_count = input_tokens
