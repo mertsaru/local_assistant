@@ -8,9 +8,7 @@ from src.chatbot import chatbot
 parser = argparse.ArgumentParser(
     description="Local Assistant - An AI assistant that runs locally on your machine."
 )
-parser.add_argument(
-    "dev", "--dev", action="store_true", help="Run in development mode."
-)
+parser.add_argument("--dev", action="store_true", help="Run in development mode.")
 args = parser.parse_args()
 
 app = FastAPI()

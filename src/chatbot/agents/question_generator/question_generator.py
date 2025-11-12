@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+import os
 
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain.chat_models import init_chat_model

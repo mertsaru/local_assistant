@@ -19,7 +19,7 @@ class Decision(BaseModel):
     rag_search: bool = Field(default=False, description="Whether to use RAG search, if using RAG search True, else False")
 
 decision_model = init_chat_model(
-    model=os.getenv"DECIDER_LLM",model_provider="ollama",
+    model=os.getenv("DECIDER_LLM"),model_provider="ollama",
 ).with_structured_output(Decision)
 
 def decide_data_source(question: str) -> Decision:

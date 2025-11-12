@@ -39,8 +39,8 @@ index = VectorStoreIndex.from_vector_store(
 )
 
 retriever: VectorIndexRetriever = index.as_retriever(
-    similarity_top_k=os.getenv("NUMBER_OF_RETRIEVALS"),
-    similarity_threshold=os.getenv("THRESHOLD"),
+    similarity_top_k=int(os.getenv("NUMBER_OF_RETRIEVALS")),
+    similarity_threshold=float(os.getenv("THRESHOLD")),
 )
 
 
@@ -58,7 +58,7 @@ def _search_rag(
     for question in questions:
         results = retriever.retrieve(
             query=question,
-            similarity_top_k=os.getenv("NUMBER_OF_RETRIEVALS"),
+            similarity_top_k=int(os.getenv("NUMBER_OF_RETRIEVALS")),
         )
 
     return results
@@ -77,7 +77,7 @@ def get_rag_docs(
 
     generated_questions = agents.question_generator.generate_questions(
         question=question,
-        number_of_gen_questions=config.PARAMETERS["rag"]["number_of_gen_questions"],
+        number_of_gen_questions=int(os.getenv("NUMBER_OF_GEN_QUESTIONS")),
     )
 
     question_list = [question] + generated_questions

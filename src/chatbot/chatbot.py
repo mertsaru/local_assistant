@@ -84,12 +84,12 @@ class Chatbot:
             self._last_token_count
             + new_doc_prompt_token_count
             + count_tokens_approximately(self._outer_text_sources)
-            > os.getenv("HISTORY_LENGTH_THRESHOLD"
+            > int(os.getenv("HISTORY_LENGTH_THRESHOLD"))
         ):
             extra_tokens = (
                 self._last_token_count
                 + new_doc_prompt_token_count
-                - os.getenv("HISTORY_LENGTH_THRESHOLD")
+                - int(os.getenv("HISTORY_LENGTH_THRESHOLD"))
             )
 
             self._truncate_chat(extra_tokens)
