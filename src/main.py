@@ -1,6 +1,8 @@
 from pydantic import BaseModel
 import argparse
+import os
 
+import uvicorn
 from fastapi import FastAPI
 
 from src.chatbot import chatbot
@@ -40,3 +42,10 @@ if args.dev:
         response = asyncio.run(agentic_chatbot.generate_answer(request.message))
 
         print("Bot: ", response)
+else:
+    uvicorn.run(
+        app,
+        host=os.getenv("HOST", "0.0.0.0"),
+        port=int(os.getenv("PORT", "10102")),
+        workers=int(os.getenv("WORKERS", "1")),
+    )
